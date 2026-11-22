@@ -16,7 +16,7 @@ const I18N = {
     navBack: "חזרה",
     navNext: "הבא",
     cropTitle: "יישור וחיתוך קצוות",
-    cropInstruction: "גרור את 4 הפינות כדי לתחום את גבולות המסמך בדיוק.",
+    cropInstruction: "גרור את הפינות או את צלעות המסמך כדי לתחום את גבולותיו בדיוק.",
     btnResetCorners: "איפוס פינות",
     btnRotateCrop: "סיבוב 90°",
     navBack2: "חיתוך",
@@ -49,7 +49,7 @@ const I18N = {
     navBack: "Back",
     navNext: "Next",
     cropTitle: "Align & Crop Corners",
-    cropInstruction: "Drag the 4 corners to fit the document boundaries precisely.",
+    cropInstruction: "Drag the corners or edge handles to fit the document boundaries precisely.",
     btnResetCorners: "Reset Corners",
     btnRotateCrop: "Rotate 90°",
     navBack2: "Crop",
@@ -77,7 +77,7 @@ const App = {
   currentLang: 'he',
   rawImage: null,
   corners: [],
-  activeCornerIndex: -1,
+  activeDragTarget: null,
   canvasScale: 1,
   canvasOffset: { x: 0, y: 0 },
   warpedCanvas: null,
@@ -347,6 +347,59 @@ const App = {
     ctx.closePath();
     ctx.stroke();
 
+    const edgePairs = [
+      [0, 1], // Top
+      [1, 2], // Right
+      [2, 3], // Bottom
+      [3, 0]  // Left
+    ];
+
+    // Draw 4 Edge Midpoint Handles (Pills)
+    for (let i = 0; i < 4; i++) {
+      const [idxA, idxB] = edgePairs[i];
+      const pA = { x: this.corners[idxA].x * scale, y: this.corners[idxA].y * scale };
+      const pB = { x: this.corners[idxB].x * scale, y: this.corners[idxB].y * scale };
+      const mx = (pA.x + pB.x) / 2;
+      const my = (pA.y + pB.y) / 2;
+      const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(angle);
+
+      // Rounded pill for edge
+      const pillW = 26;
+      const pillH = 10;
+      const r = 5;
+      ctx.beginPath();
+      ctx.moveTo(-pillW/2 + r, -pillH/2);
+      ctx.lineTo(pillW/2 - r, -pillH/2);
+      ctx.arcTo(pillW/2, -pillH/2, pillW/2, pillH/2, r);
+      ctx.lineTo(pillW/2, pillH/2 - r);
+      ctx.arcTo(pillW/2, pillH/2, -pillW/2, pillH/2, r);
+      ctx.lineTo(-pillW/2 + r, pillH/2);
+      ctx.arcTo(-pillW/2, pillH/2, -pillW/2, -pillH/2, r);
+      ctx.lineTo(-pillW/2, -pillH/2 + r);
+      ctx.arcTo(-pillW/2, -pillH/2, pillW/2, -pillH/2, r);
+      ctx.closePath();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#007aff';
+      ctx.stroke();
+
+      // Gripper notches
+      ctx.beginPath();
+      ctx.moveTo(-3, -2.5); ctx.lineTo(-3, 2.5);
+      ctx.moveTo(3, -2.5); ctx.lineTo(3, 2.5);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#8e8e93';
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     // Draw 4 Corner Handles
     for (let i = 0; i < 4; i++) {
       const cx = this.corners[i].x * scale;
@@ -371,6 +424,13 @@ const App = {
     const canvas = document.getElementById('crop-canvas');
     const magnifier = document.getElementById('magnifier');
 
+    const edgePairs = [
+      [0, 1], // Top
+      [1, 2], // Right
+      [2, 3], // Bottom
+      [3, 0]  // Left
+    ];
+
     const getCanvasPoint = (evt) => {
       const rect = canvas.getBoundingClientRect();
       const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
@@ -387,44 +447,106 @@ const App = {
 
     const handleStart = (evt) => {
       const p = getCanvasPoint(evt);
-      let closestIdx = -1;
-      let minDistance = 44; // Touch target radius threshold in px
+      const threshold = 42; // Touch target radius threshold in px
 
+      // 1. Check corner handles first
+      let closestCornerIdx = -1;
+      let minCornerDist = threshold;
       for (let i = 0; i < 4; i++) {
         const hx = this.corners[i].x * this.canvasScale;
         const hy = this.corners[i].y * this.canvasScale;
         const dist = Math.hypot(p.canvasX - hx, p.canvasY - hy);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestIdx = i;
+        if (dist < minCornerDist) {
+          minCornerDist = dist;
+          closestCornerIdx = i;
         }
       }
 
-      if (closestIdx !== -1) {
-        this.activeCornerIndex = closestIdx;
-        this.updateMagnifier(p);
+      if (closestCornerIdx !== -1) {
+        this.activeDragTarget = { type: 'corner', index: closestCornerIdx };
+        this.updateMagnifier(p, this.corners[closestCornerIdx]);
+        evt.preventDefault();
+        return;
+      }
+
+      // 2. Check edge midpoint handles
+      let closestEdgeIdx = -1;
+      let minEdgeDist = threshold;
+      for (let i = 0; i < 4; i++) {
+        const [a, b] = edgePairs[i];
+        const mx = ((this.corners[a].x + this.corners[b].x) / 2) * this.canvasScale;
+        const my = ((this.corners[a].y + this.corners[b].y) / 2) * this.canvasScale;
+        const dist = Math.hypot(p.canvasX - mx, p.canvasY - my);
+        if (dist < minEdgeDist) {
+          minEdgeDist = dist;
+          closestEdgeIdx = i;
+        }
+      }
+
+      if (closestEdgeIdx !== -1) {
+        const [a, b] = edgePairs[closestEdgeIdx];
+        const centerRaw = {
+          x: (this.corners[a].x + this.corners[b].x) / 2,
+          y: (this.corners[a].y + this.corners[b].y) / 2
+        };
+        this.activeDragTarget = {
+          type: 'edge',
+          index: closestEdgeIdx,
+          startTouch: { x: p.rawX, y: p.rawY },
+          startCorners: JSON.parse(JSON.stringify(this.corners))
+        };
+        this.updateMagnifier(p, centerRaw);
         evt.preventDefault();
       }
     };
 
     const handleMove = (evt) => {
-      if (this.activeCornerIndex === -1) return;
+      if (!this.activeDragTarget || !this.rawImage) return;
       const p = getCanvasPoint(evt);
       const imgW = this.rawImage.width;
       const imgH = this.rawImage.height;
 
-      // Clamp inside image bounds
-      const clampedX = Math.max(0, Math.min(imgW, p.rawX));
-      const clampedY = Math.max(0, Math.min(imgH, p.rawY));
+      if (this.activeDragTarget.type === 'corner') {
+        const idx = this.activeDragTarget.index;
+        const clampedX = Math.max(0, Math.min(imgW, p.rawX));
+        const clampedY = Math.max(0, Math.min(imgH, p.rawY));
+        this.corners[idx] = { x: clampedX, y: clampedY };
+        this.renderCropCanvas();
+        this.updateMagnifier(p, this.corners[idx]);
+        evt.preventDefault();
+      } else if (this.activeDragTarget.type === 'edge') {
+        const edgeIdx = this.activeDragTarget.index;
+        const [idxA, idxB] = edgePairs[edgeIdx];
+        const origA = this.activeDragTarget.startCorners[idxA];
+        const origB = this.activeDragTarget.startCorners[idxB];
 
-      this.corners[this.activeCornerIndex] = { x: clampedX, y: clampedY };
-      this.renderCropCanvas();
-      this.updateMagnifier(p);
-      evt.preventDefault();
+        const dx = p.rawX - this.activeDragTarget.startTouch.x;
+        const dy = p.rawY - this.activeDragTarget.startTouch.y;
+
+        const minDx = -Math.min(origA.x, origB.x);
+        const maxDx = Math.min(imgW - origA.x, imgW - origB.x);
+        const clampedDx = Math.max(minDx, Math.min(maxDx, dx));
+
+        const minDy = -Math.min(origA.y, origB.y);
+        const maxDy = Math.min(imgH - origA.y, imgH - origB.y);
+        const clampedDy = Math.max(minDy, Math.min(maxDy, dy));
+
+        this.corners[idxA] = { x: origA.x + clampedDx, y: origA.y + clampedDy };
+        this.corners[idxB] = { x: origB.x + clampedDx, y: origB.y + clampedDy };
+
+        const centerRaw = {
+          x: (this.corners[idxA].x + this.corners[idxB].x) / 2,
+          y: (this.corners[idxA].y + this.corners[idxB].y) / 2
+        };
+
+        this.renderCropCanvas();
+        this.updateMagnifier(p, centerRaw);
+        evt.preventDefault();
+      }
     };
 
     const handleEnd = () => {
-      this.activeCornerIndex = -1;
+      this.activeDragTarget = null;
       magnifier.classList.add('hidden');
     };
 
@@ -437,10 +559,10 @@ const App = {
     window.addEventListener('mouseup', handleEnd);
   },
 
-  updateMagnifier(point) {
+  updateMagnifier(point, sourceCenter) {
     const magnifier = document.getElementById('magnifier');
     const canvas = document.getElementById('crop-canvas');
-    if (!this.rawImage || this.activeCornerIndex === -1) {
+    if (!this.rawImage || !this.activeDragTarget) {
       magnifier.classList.add('hidden');
       return;
     }
@@ -455,8 +577,8 @@ const App = {
     zoomCanvas.height = 90;
     const zctx = zoomCanvas.getContext('2d');
 
-    const sourceX = this.corners[this.activeCornerIndex].x;
-    const sourceY = this.corners[this.activeCornerIndex].y;
+    const sourceX = sourceCenter ? sourceCenter.x : (point.rawX || 0);
+    const sourceY = sourceCenter ? sourceCenter.y : (point.rawY || 0);
     const patchSize = 50;
 
     zctx.drawImage(
