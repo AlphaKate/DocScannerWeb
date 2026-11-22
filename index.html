@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon.svg">
+  <title>סורק מסמכים Web | DocScanner</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="header-content">
+      <h1 id="app-title" class="logo">📄 סורק מסמכים</h1>
+      <button id="lang-toggle-btn" class="lang-btn" aria-label="החלף שפה">EN</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+    <!-- Step 1: Capture / Upload Screen -->
+    <section id="screen-capture" class="screen active">
+      <div class="welcome-card">
+        <div class="icon-circle">📷</div>
+        <h2 id="txt-welcome-title">סריקת מסמך חדש</h2>
+        <p id="txt-welcome-subtitle">צלם מסמך ישירות מהאייפון או בחר תמונה מגלריית התמונות.</p>
+        <p class="privacy-badge" id="txt-privacy-note">🔒 100% פרטי: כל העיבוד מתבצע במכשיר בלבד ללא שרת</p>
+      </div>
+
+      <div class="action-buttons">
+        <label class="btn btn-primary" for="camera-input">
+          <span class="btn-icon">📸</span>
+          <span id="txt-btn-camera">פתיחת מצלמה</span>
+        </label>
+        <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden-input">
+
+        <label class="btn btn-secondary" for="gallery-input">
+          <span class="btn-icon">🖼️</span>
+          <span id="txt-btn-gallery">בחירה מגלריה</span>
+        </label>
+        <input type="file" id="gallery-input" accept="image/*" class="hidden-input">
+      </div>
+    </section>
+
+    <!-- Step 2: 4-Corner Crop & Alignment Screen -->
+    <section id="screen-crop" class="screen">
+      <div class="screen-toolbar">
+        <button id="btn-back-to-capture" class="btn-nav">↩ <span id="txt-nav-back">חזרה</span></button>
+        <h3 id="txt-crop-title">יישור וחיתוך קצוות</h3>
+        <button id="btn-apply-crop" class="btn-nav primary"><span id="txt-nav-next">הבא</span> ➜</button>
+      </div>
+
+      <p class="help-text" id="txt-crop-instruction">גרור את 4 הפינות כדי לתחום את גבולות המסמך בדיוק.</p>
+
+      <div class="canvas-wrapper">
+        <canvas id="crop-canvas"></canvas>
+        <div id="magnifier" class="magnifier hidden"></div>
+      </div>
+
+      <div class="crop-actions">
+        <button id="btn-reset-corners" class="btn btn-small" id="txt-btn-reset-corners">איפוס פינות</button>
+      </div>
+    </section>
+
+    <!-- Step 3: Filters & Enhancement Screen -->
+    <section id="screen-filter" class="screen">
+      <div class="screen-toolbar">
+        <button id="btn-back-to-crop" class="btn-nav">↩ <span id="txt-nav-back2">חיתוך</span></button>
+        <h3 id="txt-filter-title">שיפור ואיכות</h3>
+        <button id="btn-proceed-export" class="btn-nav primary"><span id="txt-nav-export">ייצוא</span> ➜</button>
+      </div>
+
+      <div class="canvas-preview-wrapper">
+        <canvas id="filter-canvas"></canvas>
+      </div>
+
+      <!-- Filter Preset Buttons -->
+      <div class="filter-tabs">
+        <button class="filter-btn active" data-filter="magic">
+          <span class="preset-name" id="txt-filter-magic">משופר</span>
+        </button>
+        <button class="filter-btn" data-filter="bw">
+          <span class="preset-name" id="txt-filter-bw">שחור-לבן</span>
+        </button>
+        <button class="filter-btn" data-filter="gray">
+          <span class="preset-name" id="txt-filter-gray">אפור</span>
+        </button>
+        <button class="filter-btn" data-filter="original">
+          <span class="preset-name" id="txt-filter-orig">מקורי</span>
+        </button>
+      </div>
+
+      <!-- Fine-tune Sliders -->
+      <div class="adjustment-sliders">
+        <div class="slider-group">
+          <label for="slider-contrast" id="txt-slider-contrast">ניגודיות (Contrast)</label>
+          <input type="range" id="slider-contrast" min="50" max="200" value="115">
+        </div>
+        <div class="slider-group">
+          <label for="slider-brightness" id="txt-slider-brightness">בהירות (Brightness)</label>
+          <input type="range" id="slider-brightness" min="-50" max="50" value="5">
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 4: Export & Share Screen -->
+    <section id="screen-export" class="screen">
+      <div class="screen-toolbar">
+        <button id="btn-back-to-filter" class="btn-nav">↩ <span id="txt-nav-back3">עריכה</span></button>
+        <h3 id="txt-export-title">שמירה ושיתוף</h3>
+        <button id="btn-new-scan" class="btn-nav">➕ <span id="txt-nav-new">חדש</span></button>
+      </div>
+
+      <div class="export-preview-card">
+        <img id="export-preview-img" alt="Document Preview">
+      </div>
+
+      <div class="export-buttons">
+        <button id="btn-save-pdf" class="btn btn-primary">
+          <span class="btn-icon">📑</span>
+          <span id="txt-btn-save-pdf">שמירה כ-PDF</span>
+        </button>
+        <button id="btn-save-img" class="btn btn-secondary">
+          <span class="btn-icon">💾</span>
+          <span id="txt-btn-save-img">שמירה כתמונה (JPG)</span>
+        </button>
+        <button id="btn-share" class="btn btn-accent">
+          <span class="btn-icon">📤</span>
+          <span id="txt-btn-share">שיתוף באייפון (Share)</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Application Scripts -->
+  <script src="js/pdf-export.js"></script>
+  <script src="js/perspective.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

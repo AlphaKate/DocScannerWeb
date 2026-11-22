@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#007aff"/>
+  <rect x="136" y="106" width="240" height="300" rx="20" fill="#ffffff" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.15))"/>
+  <!-- Document Content Lines -->
+  <rect x="176" y="160" width="160" height="16" rx="8" fill="#007aff" opacity="0.8"/>
+  <rect x="176" y="200" width="130" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
+  <rect x="176" y="230" width="150" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
+  <rect x="176" y="260" width="110" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
+  <!-- Scanner Beam -->
+  <line x1="100" y1="280" x2="412" y2="280" stroke="#34c759" stroke-width="8" stroke-linecap="round"/>
+</svg>
