@@ -269,10 +269,13 @@ body {
   display: none;
 }
 
-.crop-actions {
+.crop-actions, .filter-actions-bar {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 12px;
   margin-top: 4px;
+  margin-bottom: 10px;
 }
 
 /* Filter Controls */

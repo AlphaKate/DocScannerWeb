@@ -18,8 +18,10 @@ const I18N = {
     cropTitle: "יישור וחיתוך קצוות",
     cropInstruction: "גרור את 4 הפינות כדי לתחום את גבולות המסמך בדיוק.",
     btnResetCorners: "איפוס פינות",
+    btnRotateCrop: "סיבוב 90°",
     navBack2: "חיתוך",
     filterTitle: "שיפור ואיכות",
+    btnRotateFilter: "סיבוב 90°",
     navExport: "ייצוא",
     filterMagic: "משופר",
     filterBw: "שחור-לבן",
@@ -49,8 +51,10 @@ const I18N = {
     cropTitle: "Align & Crop Corners",
     cropInstruction: "Drag the 4 corners to fit the document boundaries precisely.",
     btnResetCorners: "Reset Corners",
+    btnRotateCrop: "Rotate 90°",
     navBack2: "Crop",
     filterTitle: "Enhance & Quality",
+    btnRotateFilter: "Rotate 90°",
     navExport: "Export",
     filterMagic: "Magic",
     filterBw: "B&W",
@@ -110,8 +114,10 @@ const App = {
     document.getElementById('txt-crop-title').textContent = t.cropTitle;
     document.getElementById('txt-crop-instruction').textContent = t.cropInstruction;
     document.getElementById('btn-reset-corners').textContent = t.btnResetCorners;
+    document.getElementById('txt-btn-rotate-crop').textContent = t.btnRotateCrop;
     document.getElementById('txt-nav-back2').textContent = t.navBack2;
     document.getElementById('txt-filter-title').textContent = t.filterTitle;
+    document.getElementById('txt-btn-rotate-filter').textContent = t.btnRotateFilter;
     document.getElementById('txt-nav-export').textContent = t.navExport;
     document.getElementById('txt-filter-magic').textContent = t.filterMagic;
     document.getElementById('txt-filter-bw').textContent = t.filterBw;
@@ -156,9 +162,11 @@ const App = {
     document.getElementById('btn-back-to-capture').addEventListener('click', () => this.showScreen('screen-capture'));
     document.getElementById('btn-apply-crop').addEventListener('click', () => this.applyCropAndProceed());
     document.getElementById('btn-reset-corners').addEventListener('click', () => this.resetCorners());
+    document.getElementById('btn-rotate-crop').addEventListener('click', () => this.rotateCropImage());
 
     document.getElementById('btn-back-to-crop').addEventListener('click', () => this.showScreen('screen-crop'));
     document.getElementById('btn-proceed-export').addEventListener('click', () => this.prepareExportScreen());
+    document.getElementById('btn-rotate-filter').addEventListener('click', () => this.rotateFilterImage());
 
     document.getElementById('btn-back-to-filter').addEventListener('click', () => this.showScreen('screen-filter'));
     document.getElementById('btn-new-scan').addEventListener('click', () => this.showScreen('screen-capture'));
@@ -232,6 +240,51 @@ const App = {
       { x: 0, y: h }
     ];
     this.renderCropCanvas();
+  },
+
+  rotateCanvasOrImage90(source) {
+    const w = source.naturalWidth || source.width;
+    const h = source.naturalHeight || source.height;
+    const rotated = document.createElement('canvas');
+    rotated.width = h;
+    rotated.height = w;
+    const ctx = rotated.getContext('2d');
+    ctx.translate(h, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(source, 0, 0);
+    return rotated;
+  },
+
+  rotateCropImage() {
+    if (!this.rawImage) return;
+    const oldW = this.rawImage.naturalWidth || this.rawImage.width;
+    const oldH = this.rawImage.naturalHeight || this.rawImage.height;
+
+    // Rotate raw image
+    const rotatedCanvas = this.rotateCanvasOrImage90(this.rawImage);
+    this.rawImage = rotatedCanvas;
+
+    // Rotate 4 corners: (x, y) -> (oldH - y, x)
+    const rotatePoint = (p) => ({
+      x: oldH - p.y,
+      y: p.x
+    });
+
+    const old = this.corners;
+    this.corners = [
+      rotatePoint(old[3]), // new TL
+      rotatePoint(old[0]), // new TR
+      rotatePoint(old[1]), // new BR
+      rotatePoint(old[2])  // new BL
+    ];
+
+    this.renderCropCanvas();
+  },
+
+  rotateFilterImage() {
+    if (!this.warpedCanvas) return;
+    this.warpedCanvas = this.rotateCanvasOrImage90(this.warpedCanvas);
+    this.renderFilteredPreview();
   },
 
   renderCropCanvas() {
