@@ -13,6 +13,9 @@ const I18N = {
     privacyNote: "🔒 100% פרטי: כל העיבוד מתבצע במכשיר בלבד ללא שרת",
     btnCamera: "פתיחת מצלמה",
     btnGallery: "בחירה מגלריה",
+    btnPaste: "הדבקת תמונה מהלוח",
+    clipboardEmpty: "לא נמצאה תמונה בלוח ההעתקה. יש להעתיק תמונה תחילה.",
+    clipboardError: "לא ניתן לגשת ללוח ההעתקה. אנא אשרי גישה לדפדפן.",
     navBack: "חזרה",
     navNext: "הבא",
     cropTitle: "יישור וחיתוך קצוות",
@@ -46,6 +49,9 @@ const I18N = {
     privacyNote: "🔒 100% Private: All processing stays on your device (no servers)",
     btnCamera: "Open Camera",
     btnGallery: "Choose from Gallery",
+    btnPaste: "Paste from Clipboard",
+    clipboardEmpty: "No image found on clipboard. Please copy an image first.",
+    clipboardError: "Unable to access clipboard. Please allow browser permission.",
     navBack: "Back",
     navNext: "Next",
     cropTitle: "Align & Crop Corners",
@@ -109,6 +115,7 @@ const App = {
     document.getElementById('txt-privacy-note').textContent = t.privacyNote;
     document.getElementById('txt-btn-camera').textContent = t.btnCamera;
     document.getElementById('txt-btn-gallery').textContent = t.btnGallery;
+    document.getElementById('txt-btn-paste').textContent = t.btnPaste;
     document.getElementById('txt-nav-back').textContent = t.navBack;
     document.getElementById('txt-nav-next').textContent = t.navNext;
     document.getElementById('txt-crop-title').textContent = t.cropTitle;
@@ -133,6 +140,63 @@ const App = {
     document.getElementById('txt-btn-share').textContent = t.btnShare;
   },
 
+  loadImageFromBlob(blob) {
+    if (!blob) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        this.rawImage = img;
+        this.initCropScreen();
+        this.showScreen('screen-crop');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(blob);
+  },
+
+  async pasteFromClipboard() {
+    const t = I18N[this.currentLang];
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const clipboardItems = await navigator.clipboard.read();
+        let foundImage = false;
+        for (const item of clipboardItems) {
+          const imageType = item.types.find(type => type.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            this.loadImageFromBlob(blob);
+            foundImage = true;
+            break;
+          }
+        }
+        if (!foundImage) {
+          alert(t.clipboardEmpty);
+        }
+      } else {
+        alert(t.clipboardError);
+      }
+    } catch (err) {
+      console.warn('Clipboard read error:', err);
+      alert(t.clipboardError);
+    }
+  },
+
+  handleGlobalPaste(e) {
+    if (!e.clipboardData || !e.clipboardData.items) return;
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.startsWith('image/')) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          this.loadImageFromBlob(blob);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  },
+
   bindEvents() {
     // Language Toggle
     document.getElementById('lang-toggle-btn').addEventListener('click', () => this.toggleLanguage());
@@ -141,22 +205,28 @@ const App = {
     const handleFile = (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          this.rawImage = img;
-          this.initCropScreen();
-          this.showScreen('screen-crop');
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+      this.loadImageFromBlob(file);
       e.target.value = '';
     };
 
     document.getElementById('camera-input').addEventListener('change', handleFile);
     document.getElementById('gallery-input').addEventListener('change', handleFile);
+    document.getElementById('btn-paste').addEventListener('click', () => this.pasteFromClipboard());
+
+    // Global Paste (Ctrl+V / Command+V / iOS Long-press paste)
+    window.addEventListener('paste', (e) => this.handleGlobalPaste(e));
+
+    // Drag & Drop
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file.type && file.type.startsWith('image/')) {
+          this.loadImageFromBlob(file);
+        }
+      }
+    });
 
     // Navigation Buttons
     document.getElementById('btn-back-to-capture').addEventListener('click', () => this.showScreen('screen-capture'));
