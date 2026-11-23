@@ -38,9 +38,8 @@ body {
 .app-header {
   background-color: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: relative;
+  z-index: 10;
 }
 
 .header-content {
@@ -100,10 +99,18 @@ body {
 
 /* Toolbar */
 .screen-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 95;
+  background-color: rgba(242, 242, 247, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 4px;
   margin-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .screen-toolbar h3 {
