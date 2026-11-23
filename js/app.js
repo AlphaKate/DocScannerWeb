@@ -38,6 +38,7 @@ const I18N = {
     btnShareImg: "שליחה ושיתוף כתמונה (JPG)",
     btnSaveImg: "הורדת תמונה למכשיר (JPG)",
     btnSavePdf: "שמירה ושיתוף כ-PDF",
+    btnRestart: "התחלת סריקה חדשה",
     exportTip: "💡 באייפון: ניתן גם ללחוץ לחיצה ארוכה על התמונה כדי לשמור אותה ישירות לגלריה",
     shareTitle: "מסמך סרוק",
     shareText: "מסמך שנסרק באמצעות DocScanner",
@@ -77,6 +78,7 @@ const I18N = {
     btnShareImg: "Share Image (JPG)",
     btnSaveImg: "Download Image (JPG)",
     btnSavePdf: "Save / Share as PDF",
+    btnRestart: "Start New Scan",
     exportTip: "💡 On iPhone: You can also touch & hold the image to save directly to Photos",
     shareTitle: "Scanned Document",
     shareText: "Document scanned with DocScanner",
@@ -144,6 +146,7 @@ const App = {
     document.getElementById('txt-btn-share-img').textContent = t.btnShareImg;
     document.getElementById('txt-btn-save-img').textContent = t.btnSaveImg;
     document.getElementById('txt-btn-save-pdf').textContent = t.btnSavePdf;
+    document.getElementById('txt-btn-restart').textContent = t.btnRestart;
     document.getElementById('txt-export-tip').textContent = t.exportTip;
   },
 
@@ -246,7 +249,8 @@ const App = {
     document.getElementById('btn-rotate-filter').addEventListener('click', () => this.rotateFilterImage());
 
     document.getElementById('btn-back-to-filter').addEventListener('click', () => this.showScreen('screen-filter'));
-    document.getElementById('btn-new-scan').addEventListener('click', () => this.showScreen('screen-capture'));
+    document.getElementById('btn-new-scan').addEventListener('click', () => this.restartScan());
+    document.getElementById('btn-restart-scan').addEventListener('click', () => this.restartScan());
 
     // Filter Preset Selection
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -286,6 +290,33 @@ const App = {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
+  },
+
+  restartScan() {
+    this.rawImage = null;
+    this.corners = [];
+    this.activeDragTarget = null;
+    this.warpedCanvas = null;
+    this.filteredCanvas = null;
+    this.activeFilter = 'magic';
+    this.contrast = 115;
+    this.brightness = 5;
+
+    const contrastSlider = document.getElementById('slider-contrast');
+    if (contrastSlider) contrastSlider.value = 115;
+    const brightnessSlider = document.getElementById('slider-brightness');
+    if (brightnessSlider) brightnessSlider.value = 5;
+
+    const camInput = document.getElementById('camera-input');
+    if (camInput) camInput.value = '';
+    const galInput = document.getElementById('gallery-input');
+    if (galInput) galInput.value = '';
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-filter') === 'magic');
+    });
+
+    this.showScreen('screen-capture');
   },
 
   initCropScreen() {

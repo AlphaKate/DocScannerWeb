@@ -109,6 +109,7 @@ body {
 .screen-toolbar h3 {
   font-size: 1.1rem;
   font-weight: 600;
+  order: 0;
 }
 
 .btn-nav {
@@ -119,6 +120,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   padding: 6px 8px;
+  order: 1; /* Back button placed on left in RTL, on right in LTR */
 }
 
 .btn-nav.primary {
@@ -126,6 +128,7 @@ body {
   background-color: var(--primary-color);
   border-radius: 14px;
   padding: 6px 14px;
+  order: -1; /* 'Next' button placed on RIGHT in Hebrew (RTL), on LEFT in English (LTR) */
 }
 
 /* Welcome Card */
@@ -211,6 +214,12 @@ body {
 .btn-accent {
   background-color: var(--accent-color);
   color: #ffffff;
+}
+
+.btn-restart {
+  background-color: #34c759;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(52, 199, 89, 0.28);
 }
 
 .btn-small {
