@@ -44,12 +44,16 @@
           <span class="btn-icon">🖼️</span>
           <span id="txt-btn-gallery">בחירה מגלריה</span>
         </label>
-        <input type="file" id="gallery-input" accept="image/*" class="hidden-input">
+        <input type="file" id="gallery-input" accept="image/*" multiple class="hidden-input">
 
         <button id="btn-paste" class="btn btn-secondary">
           <span class="btn-icon">📋</span>
           <span id="txt-btn-paste">הדבקת תמונה מהלוח</span>
         </button>
+
+        <!-- Hidden inputs for adding pages during scan flow -->
+        <input type="file" id="add-camera-input" accept="image/*" capture="environment" class="hidden-input">
+        <input type="file" id="add-gallery-input" accept="image/*" multiple class="hidden-input">
       </div>
     </section>
 
@@ -59,6 +63,21 @@
         <button id="btn-back-to-capture" class="btn-nav">↩ <span id="txt-nav-back">חזרה</span></button>
         <h3 id="txt-crop-title">יישור וחיתוך קצוות</h3>
         <button id="btn-apply-crop" class="btn-nav primary"><span id="txt-nav-next">הבא</span> ➜</button>
+      </div>
+
+      <!-- Page Pagination & Batch Bar -->
+      <div class="page-pagination-bar">
+        <button id="btn-crop-prev-page" class="btn-page-step" title="עמוד קודם">◀</button>
+        <div class="page-badge">
+          <span class="txt-page-word">עמוד</span> <strong id="crop-page-current">1</strong> / <span id="crop-page-total">1</span>
+        </div>
+        <button id="btn-crop-next-page" class="btn-page-step" title="עמוד הבא">▶</button>
+        
+        <div class="page-batch-tools">
+          <label for="add-camera-input" class="btn-page-add" title="צלם עמוד נוסף">➕ 📸</label>
+          <label for="add-gallery-input" class="btn-page-add" title="הוסף תמונות מגלריה">➕ 🖼️</label>
+          <button id="btn-crop-del-page" class="btn-page-del" title="מחק עמוד נוכחי">🗑️</button>
+        </div>
       </div>
 
       <p class="help-text" id="txt-crop-instruction">גרור את 4 הפינות כדי לתחום את גבולות המסמך בדיוק.</p>
@@ -80,6 +99,20 @@
         <button id="btn-back-to-crop" class="btn-nav">↩ <span id="txt-nav-back2">חיתוך</span></button>
         <h3 id="txt-filter-title">שיפור ואיכות</h3>
         <button id="btn-proceed-export" class="btn-nav primary"><span id="txt-nav-export">ייצוא</span> ➜</button>
+      </div>
+
+      <!-- Page Pagination Bar in Filter Screen -->
+      <div class="page-pagination-bar">
+        <button id="btn-filter-prev-page" class="btn-page-step" title="עמוד קודם">◀</button>
+        <div class="page-badge">
+          <span class="txt-page-word">עמוד</span> <strong id="filter-page-current">1</strong> / <span id="filter-page-total">1</span>
+        </div>
+        <button id="btn-filter-next-page" class="btn-page-step" title="עמוד הבא">▶</button>
+        
+        <div class="page-batch-tools">
+          <label for="add-camera-input" class="btn-page-add" title="צלם עמוד נוסף">➕ 📸</label>
+          <label for="add-gallery-input" class="btn-page-add" title="הוסף תמונות מגלריה">➕ 🖼️</label>
+        </div>
       </div>
 
       <div class="canvas-preview-wrapper">
@@ -128,6 +161,10 @@
       </div>
 
       <div class="export-preview-card">
+        <!-- Thumbnails strip for multi-page document -->
+        <div id="export-thumbnails-container" class="export-thumbnails-container">
+          <div id="export-thumbnails-list" class="export-thumbnails-list"></div>
+        </div>
         <img id="export-preview-img" alt="Document Preview">
         <p class="export-tip" id="txt-export-tip">💡 באייפון: ניתן גם ללחוץ לחיצה ארוכה על התמונה כדי לשמור אותה ישירות לגלריה</p>
       </div>

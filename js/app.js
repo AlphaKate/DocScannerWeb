@@ -1,6 +1,6 @@
 /**
- * Main Controller for DocScanner Web
- * Manages UI navigation, touch gesture handling, magnifier, and bilingual localization.
+ * Main Controller for DocScanner Web (Multi-Page Batch Scanner)
+ * Manages UI navigation, touch gesture handling, magnifier, multi-page batch scanning, and bilingual localization.
  */
 
 // Bilingual Strings
@@ -8,11 +8,11 @@ const I18N = {
   he: {
     appTitle: "📄 סורק מסמכים",
     langBtn: "EN",
-    welcomeTitle: "סריקת מסמך חדש",
-    welcomeSubtitle: "צלם מסמך ישירות מהאייפון או בחר תמונה מגלריית התמונות.",
+    welcomeTitle: "סריקת מסמכים",
+    welcomeSubtitle: "צלם מסמכים ברצף במצלמה או בחר מספר תמונות יחד מהגלריה.",
     privacyNote: "🔒 100% פרטי: כל העיבוד מתבצע במכשיר בלבד ללא שרת",
     btnCamera: "פתיחת מצלמה",
-    btnGallery: "בחירה מגלריה",
+    btnGallery: "בחירה מגלריה (אפשרות למספר תמונות)",
     btnPaste: "הדבקת תמונה מהלוח",
     clipboardEmpty: "לא נמצאה תמונה בלוח ההעתקה. יש להעתיק תמונה תחילה.",
     clipboardError: "לא ניתן לגשת ללוח ההעתקה. אנא אשרי גישה לדפדפן.",
@@ -37,22 +37,24 @@ const I18N = {
     navNew: "חדש",
     btnShareImg: "שליחה ושיתוף כתמונה (JPG)",
     btnSaveImg: "הורדת תמונה למכשיר (JPG)",
-    btnSavePdf: "שמירה ושיתוף כ-PDF",
+    btnSavePdf: "שמירה ושיתוף כ-PDF מאוחד",
     btnRestart: "התחלת סריקה חדשה",
     exportTip: "💡 באייפון: ניתן גם ללחוץ לחיצה ארוכה על התמונה כדי לשמור אותה ישירות לגלריה",
     shareTitle: "מסמך סרוק",
     shareText: "מסמך שנסרק באמצעות DocScanner",
     shareImgTitle: "תמונה סרוקה",
-    shareImgText: "תמונה שנסרקה באמצעות DocScanner"
+    shareImgText: "תמונה שנסרקה באמצעות DocScanner",
+    txtPageWord: "עמוד",
+    confirmDeletePage: "האם למחוק עמוד זה מהמסמך?"
   },
   en: {
     appTitle: "📄 DocScanner",
     langBtn: "עב",
-    welcomeTitle: "Scan New Document",
-    welcomeSubtitle: "Take a photo directly from your iPhone or pick an image from your gallery.",
+    welcomeTitle: "Document Scanner",
+    welcomeSubtitle: "Scan pages continuously using the camera or select multiple photos from your gallery.",
     privacyNote: "🔒 100% Private: All processing stays on your device (no servers)",
     btnCamera: "Open Camera",
-    btnGallery: "Choose from Gallery",
+    btnGallery: "Choose from Gallery (Multiple)",
     btnPaste: "Paste from Clipboard",
     clipboardEmpty: "No image found on clipboard. Please copy an image first.",
     clipboardError: "Unable to access clipboard. Please allow browser permission.",
@@ -77,35 +79,85 @@ const I18N = {
     navNew: "New",
     btnShareImg: "Share Image (JPG)",
     btnSaveImg: "Download Image (JPG)",
-    btnSavePdf: "Save / Share as PDF",
+    btnSavePdf: "Save / Share Combined PDF",
     btnRestart: "Start New Scan",
     exportTip: "💡 On iPhone: You can also touch & hold the image to save directly to Photos",
     shareTitle: "Scanned Document",
     shareText: "Document scanned with DocScanner",
     shareImgTitle: "Scanned Image",
-    shareImgText: "Image scanned with DocScanner"
+    shareImgText: "Image scanned with DocScanner",
+    txtPageWord: "Page",
+    confirmDeletePage: "Delete this page from the document?"
   }
 };
 
 const App = {
   currentLang: 'he',
-  rawImage: null,
-  corners: [],
+  pages: [], // Array of { id, rawImage, corners, warpedCanvas, filteredCanvas, filter, contrast, brightness }
+  currentPageIndex: 0,
+  previewPageIndex: 0,
   activeDragTarget: null,
   canvasScale: 1,
-  canvasOffset: { x: 0, y: 0 },
-  warpedCanvas: null,
-  filteredCanvas: null,
-  activeFilter: 'magic',
-  contrast: 115,
-  brightness: 5,
+
+  // Shortcuts to active page properties
+  get currentPage() {
+    return this.pages[this.currentPageIndex] || null;
+  },
+
+  get rawImage() {
+    return this.currentPage ? this.currentPage.rawImage : null;
+  },
+  set rawImage(img) {
+    if (this.currentPage) this.currentPage.rawImage = img;
+  },
+
+  get corners() {
+    return this.currentPage ? this.currentPage.corners : [];
+  },
+  set corners(c) {
+    if (this.currentPage) this.currentPage.corners = c;
+  },
+
+  get activeFilter() {
+    return this.currentPage ? (this.currentPage.filter || 'magic') : 'magic';
+  },
+  set activeFilter(f) {
+    if (this.currentPage) this.currentPage.filter = f;
+  },
+
+  get contrast() {
+    return this.currentPage ? (this.currentPage.contrast !== undefined ? this.currentPage.contrast : 115) : 115;
+  },
+  set contrast(val) {
+    if (this.currentPage) this.currentPage.contrast = val;
+  },
+
+  get brightness() {
+    return this.currentPage ? (this.currentPage.brightness !== undefined ? this.currentPage.brightness : 5) : 5;
+  },
+  set brightness(val) {
+    if (this.currentPage) this.currentPage.brightness = val;
+  },
+
+  get warpedCanvas() {
+    return this.currentPage ? this.currentPage.warpedCanvas : null;
+  },
+  set warpedCanvas(c) {
+    if (this.currentPage) this.currentPage.warpedCanvas = c;
+  },
+
+  get filteredCanvas() {
+    return this.currentPage ? this.currentPage.filteredCanvas : null;
+  },
+  set filteredCanvas(c) {
+    if (this.currentPage) this.currentPage.filteredCanvas = c;
+  },
 
   init() {
     this.bindEvents();
     this.applyLanguage();
   },
 
-  // Toggle Hebrew / English
   toggleLanguage() {
     this.currentLang = this.currentLang === 'he' ? 'en' : 'he';
     this.applyLanguage();
@@ -148,21 +200,131 @@ const App = {
     document.getElementById('txt-btn-save-pdf').textContent = t.btnSavePdf;
     document.getElementById('txt-btn-restart').textContent = t.btnRestart;
     document.getElementById('txt-export-tip').textContent = t.exportTip;
+
+    document.querySelectorAll('.txt-page-word').forEach(el => {
+      el.textContent = t.txtPageWord;
+    });
+
+    this.updatePageBars();
   },
 
-  loadImageFromBlob(blob) {
-    if (!blob) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        this.rawImage = img;
-        this.initCropScreen();
-        this.showScreen('screen-crop');
+  // Multi-Page Loading
+  loadImagesFromFiles(fileList, append = false) {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+
+    let loadedCount = 0;
+    const newPages = [];
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          const insetX = w * 0.08;
+          const insetY = h * 0.08;
+          const defaultCorners = [
+            { x: insetX, y: insetY },
+            { x: w - insetX, y: insetY },
+            { x: w - insetX, y: h - insetY },
+            { x: insetX, y: h - insetY }
+          ];
+
+          newPages.push({
+            id: Date.now() + Math.random(),
+            rawImage: img,
+            corners: defaultCorners,
+            warpedCanvas: null,
+            filteredCanvas: null,
+            filter: 'magic',
+            contrast: 115,
+            brightness: 5
+          });
+
+          loadedCount++;
+          if (loadedCount === files.length) {
+            if (append) {
+              const prevLen = this.pages.length;
+              this.pages.push(...newPages);
+              this.loadPage(prevLen);
+            } else {
+              this.pages = newPages;
+              this.loadPage(0);
+              this.showScreen('screen-crop');
+            }
+          }
+        };
+        img.src = event.target.result;
       };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(blob);
+      reader.readAsDataURL(file);
+    });
+  },
+
+  loadPage(index) {
+    if (index < 0 || index >= this.pages.length) return;
+    this.currentPageIndex = index;
+    const p = this.pages[index];
+
+    // Update filter sliders and buttons
+    const contrastSlider = document.getElementById('slider-contrast');
+    if (contrastSlider) contrastSlider.value = p.contrast !== undefined ? p.contrast : 115;
+    const brightnessSlider = document.getElementById('slider-brightness');
+    if (brightnessSlider) brightnessSlider.value = p.brightness !== undefined ? p.brightness : 5;
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-filter') === (p.filter || 'magic'));
+    });
+
+    this.updatePageBars();
+
+    // Check which screen is active to render appropriately
+    if (document.getElementById('screen-crop').classList.contains('active')) {
+      this.renderCropCanvas();
+    } else if (document.getElementById('screen-filter').classList.contains('active')) {
+      this.ensureCurrentPageWarped();
+      this.renderFilteredPreview();
+    }
+  },
+
+  updatePageBars() {
+    const total = Math.max(1, this.pages.length);
+    const cur = this.pages.length > 0 ? (this.currentPageIndex + 1) : 1;
+
+    const cropCur = document.getElementById('crop-page-current');
+    const cropTot = document.getElementById('crop-page-total');
+    if (cropCur) cropCur.textContent = cur;
+    if (cropTot) cropTot.textContent = total;
+
+    const filterCur = document.getElementById('filter-page-current');
+    const filterTot = document.getElementById('filter-page-total');
+    if (filterCur) filterCur.textContent = cur;
+    if (filterTot) filterTot.textContent = total;
+
+    const btnCropPrev = document.getElementById('btn-crop-prev-page');
+    const btnCropNext = document.getElementById('btn-crop-next-page');
+    if (btnCropPrev) btnCropPrev.disabled = this.currentPageIndex <= 0;
+    if (btnCropNext) btnCropNext.disabled = this.currentPageIndex >= this.pages.length - 1;
+
+    const btnFilterPrev = document.getElementById('btn-filter-prev-page');
+    const btnFilterNext = document.getElementById('btn-filter-next-page');
+    if (btnFilterPrev) btnFilterPrev.disabled = this.currentPageIndex <= 0;
+    if (btnFilterNext) btnFilterNext.disabled = this.currentPageIndex >= this.pages.length - 1;
+  },
+
+  deleteCurrentPage() {
+    if (this.pages.length <= 1) {
+      this.restartScan();
+      return;
+    }
+    const t = I18N[this.currentLang];
+    if (confirm(t.confirmDeletePage)) {
+      this.pages.splice(this.currentPageIndex, 1);
+      const newIndex = Math.min(this.currentPageIndex, this.pages.length - 1);
+      this.loadPage(newIndex);
+    }
   },
 
   async pasteFromClipboard() {
@@ -175,7 +337,7 @@ const App = {
           const imageType = item.types.find(type => type.startsWith('image/'));
           if (imageType) {
             const blob = await item.getType(imageType);
-            this.loadImageFromBlob(blob);
+            this.loadImagesFromFiles([blob], this.pages.length > 0);
             foundImage = true;
             break;
           }
@@ -195,15 +357,16 @@ const App = {
   handleGlobalPaste(e) {
     if (!e.clipboardData || !e.clipboardData.items) return;
     const items = e.clipboardData.items;
+    const files = [];
     for (let i = 0; i < items.length; i++) {
       if (items[i].type && items[i].type.startsWith('image/')) {
-        const blob = items[i].getAsFile();
-        if (blob) {
-          this.loadImageFromBlob(blob);
-          e.preventDefault();
-          break;
-        }
+        const file = items[i].getAsFile();
+        if (file) files.push(file);
       }
+    }
+    if (files.length > 0) {
+      this.loadImagesFromFiles(files, this.pages.length > 0);
+      e.preventDefault();
     }
   },
 
@@ -211,16 +374,26 @@ const App = {
     // Language Toggle
     document.getElementById('lang-toggle-btn').addEventListener('click', () => this.toggleLanguage());
 
-    // File inputs (Camera & Gallery)
-    const handleFile = (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      this.loadImageFromBlob(file);
+    // File inputs
+    const handleInitialFiles = (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        this.loadImagesFromFiles(e.target.files, false);
+      }
       e.target.value = '';
     };
 
-    document.getElementById('camera-input').addEventListener('change', handleFile);
-    document.getElementById('gallery-input').addEventListener('change', handleFile);
+    const handleAppendFiles = (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        this.loadImagesFromFiles(e.target.files, true);
+      }
+      e.target.value = '';
+    };
+
+    document.getElementById('camera-input').addEventListener('change', handleInitialFiles);
+    document.getElementById('gallery-input').addEventListener('change', handleInitialFiles);
+    document.getElementById('add-camera-input').addEventListener('change', handleAppendFiles);
+    document.getElementById('add-gallery-input').addEventListener('change', handleAppendFiles);
+
     document.getElementById('btn-paste').addEventListener('click', () => this.pasteFromClipboard());
 
     // Global Paste (Ctrl+V / Command+V / iOS Long-press paste)
@@ -230,11 +403,8 @@ const App = {
     window.addEventListener('dragover', (e) => e.preventDefault());
     window.addEventListener('drop', (e) => {
       e.preventDefault();
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-        const file = e.dataTransfer.files[0];
-        if (file.type && file.type.startsWith('image/')) {
-          this.loadImageFromBlob(file);
-        }
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        this.loadImagesFromFiles(e.dataTransfer.files, this.pages.length > 0);
       }
     });
 
@@ -251,6 +421,14 @@ const App = {
     document.getElementById('btn-back-to-filter').addEventListener('click', () => this.showScreen('screen-filter'));
     document.getElementById('btn-new-scan').addEventListener('click', () => this.restartScan());
     document.getElementById('btn-restart-scan').addEventListener('click', () => this.restartScan());
+
+    // Page Pagination Buttons
+    document.getElementById('btn-crop-prev-page').addEventListener('click', () => this.loadPage(this.currentPageIndex - 1));
+    document.getElementById('btn-crop-next-page').addEventListener('click', () => this.loadPage(this.currentPageIndex + 1));
+    document.getElementById('btn-crop-del-page').addEventListener('click', () => this.deleteCurrentPage());
+
+    document.getElementById('btn-filter-prev-page').addEventListener('click', () => this.loadPage(this.currentPageIndex - 1));
+    document.getElementById('btn-filter-next-page').addEventListener('click', () => this.loadPage(this.currentPageIndex + 1));
 
     // Filter Preset Selection
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -291,7 +469,7 @@ const App = {
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
 
-    // Display app branding header only on initial capture screen
+    // Display branding header only on initial capture screen
     const appHeader = document.querySelector('.app-header');
     if (appHeader) {
       appHeader.style.display = screenId === 'screen-capture' ? 'block' : 'none';
@@ -302,14 +480,10 @@ const App = {
   },
 
   restartScan() {
-    this.rawImage = null;
-    this.corners = [];
+    this.pages = [];
+    this.currentPageIndex = 0;
+    this.previewPageIndex = 0;
     this.activeDragTarget = null;
-    this.warpedCanvas = null;
-    this.filteredCanvas = null;
-    this.activeFilter = 'magic';
-    this.contrast = 115;
-    this.brightness = 5;
 
     const contrastSlider = document.getElementById('slider-contrast');
     if (contrastSlider) contrastSlider.value = 115;
@@ -326,24 +500,6 @@ const App = {
     });
 
     this.showScreen('screen-capture');
-  },
-
-  initCropScreen() {
-    if (!this.rawImage) return;
-    const w = this.rawImage.naturalWidth || this.rawImage.width;
-    const h = this.rawImage.naturalHeight || this.rawImage.height;
-
-    // Default corners inset by 10%
-    const insetX = w * 0.08;
-    const insetY = h * 0.08;
-    this.corners = [
-      { x: insetX, y: insetY },         // Top-Left
-      { x: w - insetX, y: insetY },     // Top-Right
-      { x: w - insetX, y: h - insetY }, // Bottom-Right
-      { x: insetX, y: h - insetY }      // Bottom-Left
-    ];
-
-    this.renderCropCanvas();
   },
 
   resetCorners() {
@@ -715,12 +871,16 @@ const App = {
     magnifier.style.backgroundImage = `url(${zoomCanvas.toDataURL()})`;
   },
 
-  // Perform Perspective Warp
-  applyCropAndProceed() {
+  ensureCurrentPageWarped() {
     if (!this.rawImage) return;
     this.warpedCanvas = PerspectiveTransform.warp(this.rawImage, this.corners);
+  },
+
+  applyCropAndProceed() {
+    this.ensureCurrentPageWarped();
     this.showScreen('screen-filter');
     this.renderFilteredPreview();
+    this.updatePageBars();
   },
 
   renderFilteredPreview() {
@@ -744,18 +904,71 @@ const App = {
   },
 
   prepareExportScreen() {
-    if (!this.filteredCanvas) return;
-    const previewImg = document.getElementById('export-preview-img');
-    previewImg.src = this.filteredCanvas.toDataURL('image/jpeg', 0.9);
+    // Process all pages so they all have filtered canvases ready for export
+    this.pages.forEach((p) => {
+      if (!p.warpedCanvas) {
+        p.warpedCanvas = PerspectiveTransform.warp(p.rawImage, p.corners);
+      }
+      p.filteredCanvas = DocumentFilters.apply(p.warpedCanvas, p.filter || 'magic', {
+        contrast: p.contrast !== undefined ? p.contrast : 115,
+        brightness: p.brightness !== undefined ? p.brightness : 5
+      });
+    });
+
+    this.previewPageIndex = this.currentPageIndex;
+    this.renderExportThumbnails();
+    this.showExportPagePreview(this.previewPageIndex);
     this.showScreen('screen-export');
   },
 
-  shareImage() {
-    if (!this.filteredCanvas) return;
+  renderExportThumbnails() {
+    const list = document.getElementById('export-thumbnails-list');
+    if (!list) return;
+    list.innerHTML = '';
+
     const t = I18N[this.currentLang];
-    this.filteredCanvas.toBlob(async (blob) => {
+    const total = this.pages.length;
+    document.getElementById('txt-btn-save-pdf').textContent = `${t.btnSavePdf} (${total} ${t.txtPageWord})`;
+
+    this.pages.forEach((p, idx) => {
+      const item = document.createElement('div');
+      item.className = `export-thumb-item ${idx === this.previewPageIndex ? 'active' : ''}`;
+      
+      const img = document.createElement('img');
+      img.src = p.filteredCanvas.toDataURL('image/jpeg', 0.6);
+      
+      const badge = document.createElement('div');
+      badge.className = 'export-thumb-badge';
+      badge.textContent = `${idx + 1}`;
+
+      item.appendChild(img);
+      item.appendChild(badge);
+
+      item.addEventListener('click', () => {
+        this.previewPageIndex = idx;
+        this.showExportPagePreview(idx);
+        document.querySelectorAll('.export-thumb-item').forEach((el, i) => {
+          el.classList.toggle('active', i === idx);
+        });
+      });
+
+      list.appendChild(item);
+    });
+  },
+
+  showExportPagePreview(index) {
+    if (!this.pages[index]) return;
+    const previewImg = document.getElementById('export-preview-img');
+    previewImg.src = this.pages[index].filteredCanvas.toDataURL('image/jpeg', 0.92);
+  },
+
+  shareImage() {
+    const activeCanvas = this.pages[this.previewPageIndex] ? this.pages[this.previewPageIndex].filteredCanvas : this.filteredCanvas;
+    if (!activeCanvas) return;
+    const t = I18N[this.currentLang];
+    activeCanvas.toBlob(async (blob) => {
       if (!blob) return;
-      const file = new File([blob], `scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const file = new File([blob], `scan_page_${this.previewPageIndex + 1}_${Date.now()}.jpg`, { type: 'image/jpeg' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -775,14 +988,14 @@ const App = {
   },
 
   downloadImage() {
-    if (!this.filteredCanvas) return;
-    this.filteredCanvas.toBlob((blob) => {
+    const activeCanvas = this.pages[this.previewPageIndex] ? this.pages[this.previewPageIndex].filteredCanvas : this.filteredCanvas;
+    if (!activeCanvas) return;
+    activeCanvas.toBlob((blob) => {
       if (!blob) return;
-      const filename = `scan_${Date.now()}.jpg`;
+      const filename = `scan_page_${this.previewPageIndex + 1}_${Date.now()}.jpg`;
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
       if (isIOS) {
-        // On iOS Safari, open image blob directly in a new window/tab for native saving
         const url = URL.createObjectURL(blob);
         const win = window.open(url, '_blank');
         if (!win) {
@@ -804,10 +1017,12 @@ const App = {
   },
 
   async exportOrSharePDF() {
-    if (!this.filteredCanvas) return;
+    if (this.pages.length === 0) return;
     const t = I18N[this.currentLang];
-    const pdfBlob = PDFExporter.generatePDFBlob(this.filteredCanvas);
-    const pdfFile = new File([pdfBlob], `scan_${Date.now()}.pdf`, { type: 'application/pdf' });
+    const canvases = this.pages.map(p => p.filteredCanvas);
+    const pdfBlob = PDFExporter.generatePDFBlob(canvases);
+    const filename = `scanned_document_${Date.now()}.pdf`;
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
 
     if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
       try {
@@ -821,7 +1036,7 @@ const App = {
         if (err.name === 'AbortError') return;
       }
     }
-    PDFExporter.savePDF(this.filteredCanvas, `scan_${Date.now()}.pdf`);
+    PDFExporter.savePDF(canvases, filename);
   }
 };
 
