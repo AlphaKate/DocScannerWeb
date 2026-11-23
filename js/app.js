@@ -35,11 +35,14 @@ const I18N = {
     navBack3: "עריכה",
     exportTitle: "שמירה ושיתוף",
     navNew: "חדש",
-    btnSavePdf: "שמירה כ-PDF",
-    btnSaveImg: "שמירה כתמונה (JPG)",
-    btnShare: "שיתוף באייפון (Share)",
+    btnShareImg: "שליחה ושיתוף כתמונה (JPG)",
+    btnSaveImg: "הורדת תמונה למכשיר (JPG)",
+    btnSavePdf: "שמירה ושיתוף כ-PDF",
+    exportTip: "💡 באייפון: ניתן גם ללחוץ לחיצה ארוכה על התמונה כדי לשמור אותה ישירות לגלריה",
     shareTitle: "מסמך סרוק",
-    shareText: "מסמך שנסרק באמצעות DocScanner"
+    shareText: "מסמך שנסרק באמצעות DocScanner",
+    shareImgTitle: "תמונה סרוקה",
+    shareImgText: "תמונה שנסרקה באמצעות DocScanner"
   },
   en: {
     appTitle: "📄 DocScanner",
@@ -71,11 +74,14 @@ const I18N = {
     navBack3: "Edit",
     exportTitle: "Save & Share",
     navNew: "New",
-    btnSavePdf: "Save as PDF",
-    btnSaveImg: "Save as Image (JPG)",
-    btnShare: "Share on iPhone",
+    btnShareImg: "Share Image (JPG)",
+    btnSaveImg: "Download Image (JPG)",
+    btnSavePdf: "Save / Share as PDF",
+    exportTip: "💡 On iPhone: You can also touch & hold the image to save directly to Photos",
     shareTitle: "Scanned Document",
-    shareText: "Document scanned with DocScanner"
+    shareText: "Document scanned with DocScanner",
+    shareImgTitle: "Scanned Image",
+    shareImgText: "Image scanned with DocScanner"
   }
 };
 
@@ -135,9 +141,10 @@ const App = {
     document.getElementById('txt-nav-back3').textContent = t.navBack3;
     document.getElementById('txt-export-title').textContent = t.exportTitle;
     document.getElementById('txt-nav-new').textContent = t.navNew;
-    document.getElementById('txt-btn-save-pdf').textContent = t.btnSavePdf;
+    document.getElementById('txt-btn-share-img').textContent = t.btnShareImg;
     document.getElementById('txt-btn-save-img').textContent = t.btnSaveImg;
-    document.getElementById('txt-btn-share').textContent = t.btnShare;
+    document.getElementById('txt-btn-save-pdf').textContent = t.btnSavePdf;
+    document.getElementById('txt-export-tip').textContent = t.exportTip;
   },
 
   loadImageFromBlob(blob) {
@@ -267,9 +274,9 @@ const App = {
     });
 
     // Export Actions
-    document.getElementById('btn-save-pdf').addEventListener('click', () => this.exportPDF());
-    document.getElementById('btn-save-img').addEventListener('click', () => this.exportImage());
-    document.getElementById('btn-share').addEventListener('click', () => this.shareNative());
+    document.getElementById('btn-share-img').addEventListener('click', () => this.shareImage());
+    document.getElementById('btn-save-img').addEventListener('click', () => this.downloadImage());
+    document.getElementById('btn-save-pdf').addEventListener('click', () => this.exportOrSharePDF());
 
     // Canvas Touch & Mouse Events
     this.setupCropCanvasInteractions();
@@ -703,20 +710,60 @@ const App = {
     this.showScreen('screen-export');
   },
 
-  exportPDF() {
+  shareImage() {
     if (!this.filteredCanvas) return;
-    PDFExporter.savePDF(this.filteredCanvas, `scan_${Date.now()}.pdf`);
+    const t = I18N[this.currentLang];
+    this.filteredCanvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], `scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: t.shareImgTitle,
+            text: t.shareImgText
+          });
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            this.downloadImage();
+          }
+        }
+      } else {
+        this.downloadImage();
+      }
+    }, 'image/jpeg', 0.95);
   },
 
-  exportImage() {
+  downloadImage() {
     if (!this.filteredCanvas) return;
-    const link = document.createElement('a');
-    link.download = `scan_${Date.now()}.jpg`;
-    link.href = this.filteredCanvas.toDataURL('image/jpeg', 0.95);
-    link.click();
+    this.filteredCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const filename = `scan_${Date.now()}.jpg`;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+      if (isIOS) {
+        // On iOS Safari, open image blob directly in a new window/tab for native saving
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) {
+          window.location.href = url;
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 1500);
+      }
+    }, 'image/jpeg', 0.95);
   },
 
-  async shareNative() {
+  async exportOrSharePDF() {
     if (!this.filteredCanvas) return;
     const t = I18N[this.currentLang];
     const pdfBlob = PDFExporter.generatePDFBlob(this.filteredCanvas);
@@ -729,15 +776,12 @@ const App = {
           title: t.shareTitle,
           text: t.shareText
         });
+        return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          this.exportPDF();
-        }
+        if (err.name === 'AbortError') return;
       }
-    } else {
-      // Fallback
-      this.exportPDF();
     }
+    PDFExporter.savePDF(this.filteredCanvas, `scan_${Date.now()}.pdf`);
   }
 };
 
