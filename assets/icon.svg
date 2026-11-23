@@ -1,11 +1,78 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="128" fill="#007aff"/>
-  <rect x="136" y="106" width="240" height="300" rx="20" fill="#ffffff" filter="drop-shadow(0 8px 16px rgba(0,0,0,0.15))"/>
-  <!-- Document Content Lines -->
-  <rect x="176" y="160" width="160" height="16" rx="8" fill="#007aff" opacity="0.8"/>
-  <rect x="176" y="200" width="130" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
-  <rect x="176" y="230" width="150" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
-  <rect x="176" y="260" width="110" height="14" rx="7" fill="#8e8e93" opacity="0.5"/>
-  <!-- Scanner Beam -->
-  <line x1="100" y1="280" x2="412" y2="280" stroke="#34c759" stroke-width="8" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2027" />
+      <stop offset="40%" stop-color="#203a43" />
+      <stop offset="100%" stop-color="#2c5364" />
+    </linearGradient>
+
+    <!-- Scanner Laser Beam Gradient -->
+    <linearGradient id="laserGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f2fe" stop-opacity="0" />
+      <stop offset="25%" stop-color="#00f2fe" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="75%" stop-color="#00f2fe" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#00f2fe" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Document Shadow Filter -->
+    <filter id="docShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+
+    <!-- Corner Brackets Gradient -->
+    <linearGradient id="cornerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5D4" />
+      <stop offset="100%" stop-color="#00BBF9" />
+    </linearGradient>
+  </defs>
+
+  <!-- iOS App Icon Squircle Base -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)"/>
+
+  <!-- Technical Aperture / Scanner Rings -->
+  <circle cx="256" cy="256" r="195" fill="none" stroke="#ffffff" stroke-width="2" stroke-opacity="0.08" stroke-dasharray="14 10" />
+  <circle cx="256" cy="256" r="225" fill="none" stroke="#00f2fe" stroke-width="1.5" stroke-opacity="0.18" />
+
+  <!-- Document Sheet -->
+  <g filter="url(#docShadow)">
+    <!-- White Paper Page with subtle rounded corners -->
+    <path d="M 152 108 L 314 108 L 372 166 L 372 404 C 372 416, 362 426, 350 426 L 152 426 C 140 426, 130 416, 130 404 L 130 130 C 130 118, 140 108, 152 108 Z" fill="#ffffff" />
+    
+    <!-- Folded Corner Accent -->
+    <path d="M 314 108 L 372 166 L 326 166 C 319 166, 314 161, 314 154 Z" fill="#e2e8f0" />
+    <path d="M 314 108 L 314 154 C 314 161, 319 166, 326 166 L 372 166 Z" fill="#cbd5e1" opacity="0.6"/>
+
+    <!-- Document Content Lines -->
+    <rect x="170" y="196" width="132" height="15" rx="7.5" fill="#007aff" opacity="0.88"/>
+    <rect x="170" y="230" width="168" height="11" rx="5.5" fill="#94a3b8" opacity="0.75"/>
+    <rect x="170" y="256" width="146" height="11" rx="5.5" fill="#94a3b8" opacity="0.75"/>
+    <rect x="170" y="282" width="158" height="11" rx="5.5" fill="#94a3b8" opacity="0.75"/>
+    <rect x="170" y="308" width="122" height="11" rx="5.5" fill="#94a3b8" opacity="0.75"/>
+    
+    <!-- Signature Line -->
+    <path d="M 170 366 Q 188 350, 206 366 T 242 366 T 278 360" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- 4-Corner Perspective Crop Brackets (Defining Feature) -->
+  <!-- Top-Left -->
+  <path d="M 94 152 L 94 94 L 152 94" fill="none" stroke="url(#cornerGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Top-Right -->
+  <path d="M 360 94 L 418 94 L 418 152" fill="none" stroke="url(#cornerGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom-Right -->
+  <path d="M 418 360 L 418 418 L 360 418" fill="none" stroke="url(#cornerGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom-Left -->
+  <path d="M 152 418 L 94 418 L 94 360" fill="none" stroke="url(#cornerGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Scanning Laser Beam with Glow -->
+  <g>
+    <!-- Outer Glow -->
+    <rect x="74" y="260" width="364" height="10" rx="5" fill="url(#laserGrad)" opacity="0.6"/>
+    <!-- Core Laser Line -->
+    <rect x="80" y="262.5" width="352" height="5" rx="2.5" fill="url(#laserGrad)"/>
+    <!-- Central Bright Particle -->
+    <circle cx="256" cy="265" r="5.5" fill="#ffffff" />
+    <circle cx="256" cy="265" r="9" fill="#00f2fe" opacity="0.6" />
+  </g>
 </svg>
