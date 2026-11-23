@@ -290,6 +290,15 @@ const App = {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
+
+    // Display app branding header only on initial capture screen
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader) {
+      appHeader.style.display = screenId === 'screen-capture' ? 'block' : 'none';
+    }
+
+    // Reset scroll to top
+    window.scrollTo({ top: 0, behavior: 'instant' });
   },
 
   restartScan() {
